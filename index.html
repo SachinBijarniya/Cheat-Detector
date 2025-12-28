@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cheat Detector - Privacy-First Eye Movement Monitoring</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- MediaPipe Face Mesh CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1640029074/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/control_utils@0.6.1629159505/control_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🎓 Cheat Detector - Privacy-First Eye Movement Monitoring</h1>
+            <p class="subtitle">Behavioral Anomaly Detection for Online Exams</p>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="main-content">
+            <!-- Left Side: Webcam Feed -->
+            <div class="left-panel">
+                <!-- Welcome Message -->
+                <div id="welcomeMessage" class="card welcome-card">
+                    <h3>👋 Welcome to Cheat Detector Demo</h3>
+                    <p>This privacy-first system monitors behavioral patterns during online exams.</p>
+                    <ul>
+                        <li>✓ No video recording or transmission</li>
+                        <li>✓ All processing happens in your browser</li>
+                        <li>✓ Only behavioral timestamps are logged</li>
+                        <li>✓ Accessibility-aware design</li>
+                    </ul>
+                    
+                    <!-- MANDATORY CONSENT CHECKBOX -->
+                    <div class="consent-container">
+                        <label class="consent-label">
+                            <input type="checkbox" id="consentCheckbox" required>
+                            <span class="consent-text">
+                                <strong>I understand and consent:</strong> I acknowledge that this system 
+                                will access my webcam for behavioral monitoring. I understand that no video 
+                                is recorded, all processing is local, and behavioral data is privacy-safe. 
+                                I consent to having my eye movements and face position tracked during this session.
+                            </span>
+                        </label>
+                    </div>
+                    
+                    <p class="consent-note">
+                        ⚠️ You must provide explicit consent before monitoring can begin.
+                    </p>
+                </div>
+                
+                <!-- Error Message -->
+                <div id="errorMessage" class="card error-card" style="display:none;">
+                    <p>Error message will appear here</p>
+                </div>
+                
+                <!-- Success Message -->
+                <div id="successMessage" class="success-message" style="display:none;">
+                    Success message
+                </div>
+                
+                <!-- Calibration Progress -->
+                <div id="calibrationProgress" class="card calibration-card" style="display:none;">
+                    <h3>🎯 Calibration in Progress</h3>
+                    <p>Please look naturally at the screen</p>
+                    <div class="progress-container">
+                        <div id="calibrationProgressBar" class="progress-bar"></div>
+                    </div>
+                    <p class="progress-text"><span id="calibrationProgressText">0%</span> Complete</p>
+                </div>
+                
+                <div class="video-container">
+                    <h2>📹 Live Webcam Feed</h2>
+                    <div class="video-wrapper">
+                        <video id="webcam" autoplay playsinline></video>
+                        <canvas id="overlay"></canvas>
+                    </div>
+                    <div class="status" id="status">
+                        <span class="status-indicator" id="statusIndicator"></span>
+                        <span id="statusText">Initializing...</span>
+                    </div>
+                    <button id="startButton" class="btn btn-primary">Start Monitoring</button>
+                    <button id="stopButton" class="btn btn-secondary" disabled>Stop Monitoring</button>
+                    <button id="pauseButton" class="btn btn-secondary" disabled>Pause</button>
+                    <button id="resumeButton" class="btn btn-secondary" disabled>Resume</button>
+                </div>
+            </div>
+
+            <!-- Right Side: Analysis & Logs -->
+            <div class="right-panel">
+                <!-- Session State -->
+                <div class="card">
+                    <h2>📊 Session Status</h2>
+                    <div class="session-info">
+                        <div class="info-row">
+                            <span class="info-label">State:</span>
+                            <span id="sessionState" class="session-state">IDLE</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Confidence:</span>
+                            <span id="confidenceLevel" class="confidence-badge confidence-low">LOW</span>
+                            <span class="confidence-score">(<span id="confidenceScore">0</span>/100)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gaze Direction Indicator -->
+                <div class="card">
+                    <h2>👁️ Gaze Direction</h2>
+                    <div class="gaze-indicator">
+                        <div class="gaze-visual">
+                            <div id="gazePointer" class="gaze-pointer"></div>
+                        </div>
+                        <div id="gazeDirection" class="gaze-text">CENTER</div>
+                    </div>
+                </div>
+
+                <!-- Warning Counter -->
+                <div class="card">
+                    <h2>⚠️ Behavior Alerts</h2>
+                    <div class="warning-counter">
+                        <div class="counter-display">
+                            <span id="warningCount" class="counter-number">0</span>
+                            <span class="counter-label">Alerts</span>
+                        </div>
+                        <div class="warning-types">
+                            <div class="warning-stat">
+                                <span class="stat-label">Eye Gaze Away:</span>
+                                <span id="lookingAwayCount">0</span>
+                            </div>
+                            <div class="warning-stat">
+                                <span class="stat-label">Head Turned Away:</span>
+                                <span id="faceMovementCount">0</span>
+                            </div>
+                            <div class="warning-stat">
+                                <span class="stat-label">Face Not Detected:</span>
+                                <span id="faceNotDetectedCount">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Accessibility Mode Toggle -->
+                <div class="card">
+                    <h2>♿ Accessibility Settings</h2>
+                    <div class="accessibility-toggle">
+                        <label class="switch">
+                            <input type="checkbox" id="accessibilityMode">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label">Accessibility Mode</span>
+                    </div>
+                    <p class="accessibility-info">
+                        When enabled: increased tolerance for head movement, reduced sensitivity, 
+                        and longer time thresholds for users with mobility or attention differences.
+                        <br><strong>✓ Pattern detection disabled</strong>
+                        <br><strong>✓ Higher thresholds (8s/12s)</strong>
+                        <br><strong>✓ Reduced false positives</strong>
+                    </p>
+                    <p class="accessibility-active" id="accessibilityActive" style="display:none;">
+                        ♿ <strong>Accessibility adjustments active</strong>
+                    </p>
+                </div>
+
+                <!-- Ethics & Privacy Notice -->
+                <div class="card privacy-notice">
+                    <h2>🔒 Ethics & Privacy Notice</h2>
+                    <ul class="privacy-list">
+                        <li>✅ All processing happens locally in your browser</li>
+                        <li>✅ No video frames are recorded or transmitted</li>
+                        <li>✅ No biometric data is stored</li>
+                        <li>✅ Only behavioral timestamps are logged</li>
+                        <li>✅ No external servers are contacted</li>
+                        <li>✅ No identity verification or personal data collection</li>
+                        <li>✅ Assistive technology and accessibility aware</li>
+                    </ul>
+                    <p class="ethics-disclaimer">
+                        <strong>⚖️ Ethics Disclaimer:</strong> This system detects behavioral 
+                        signals only and must NOT be used as the sole method to accuse or 
+                        punish students. It provides behavioral data, not proof of misconduct.
+                        Always combine with human judgment and consider individual circumstances.
+                    </p>
+                    <p class="compliance-note">
+                        <strong>⚠️ Important:</strong> Graduated confidence levels (LOW/MEDIUM/HIGH) 
+                        indicate signal strength, not certainty. Multiple factors can cause 
+                        behavioral variations including accessibility needs, learning styles, 
+                        and environmental factors.
+                    </p>
+                </div>
+
+                <!-- Behavior Log -->
+                <div class="card">
+                    <h2>📋 Behavior Log</h2>
+                    <div class="log-controls">
+                        <button id="clearLogButton" class="btn btn-small">Clear Log</button>
+                        <button id="exportLogButton" class="btn btn-small">Export Log</button>
+                        <button id="exportSummaryButton" class="btn btn-small">Export Summary</button>
+                    </div>
+                    <div id="behaviorLog" class="behavior-log">
+                        <p class="log-empty">No events logged yet. Start monitoring to begin.</p>
+                    </div>
+                </div>
+
+                <!-- Session Summary (shown after monitoring ends) -->
+                <div id="sessionSummary" class="card session-summary" style="display:none;">
+                    <h2>📊 Session Summary</h2>
+                    <p>Summary will appear here after monitoring stops.</p>
+                </div>
+
+                <!-- Debug Mode Toggle -->
+                <div class="card debug-card">
+                    <h2>🐛 Debug Tools</h2>
+                    <div class="accessibility-toggle">
+                        <label class="switch">
+                            <input type="checkbox" id="debugToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span class="toggle-label">Debug Mode</span>
+                    </div>
+                    <p class="debug-info">Shows technical details in overlay for development/testing</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer>
+            <p>Built with MediaPipe Face Mesh | Privacy-First Design | Accessibility-Aware</p>
+            <p class="warning-footer">⚠️ This tool is for educational demonstration only. 
+               Always combine automated detection with human judgment and consideration of individual circumstances.</p>
+            <p class="keyboard-shortcuts">
+                <strong>Keyboard Shortcuts:</strong> Space = Pause/Resume | Escape = Stop
+            </p>
+        </footer>
+    </div>
+
+    <!-- Debug Overlay (hidden by default) -->
+    <div id="debugOverlay" class="debug-overlay" style="display:none;">
+        <strong>DEBUG MODE</strong><br>
+        Waiting for data...
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
